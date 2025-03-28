@@ -32,6 +32,11 @@ const NewTranslation = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    if (!user) {
+      toast.error('You must be logged in to submit translations');
+      return;
+    }
+    
     if (files.length === 0) {
       toast.error('Please select at least one file to translate');
       return;
@@ -55,9 +60,7 @@ const NewTranslation = () => {
         const { file } = fileWithPreview;
         
         // Create a translation job
-        addJob({
-          userId: user!.id,
-          username: user!.username,
+        await addJob({
           fileName: file.name,
           fileSize: file.size,
           sourceLanguage,
