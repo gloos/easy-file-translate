@@ -43,6 +43,25 @@ export const AppLayout = ({ children }: { children: React.ReactNode }) => {
   const { user, logout, isAdmin } = useAuth();
   const [open, setOpen] = useState(false);
   
+  // Get display name from email or user metadata
+  const getDisplayName = () => {
+    if (!user) return '';
+    
+    // Try to get from email (remove domain part)
+    if (user.email) {
+      return user.email.split('@')[0];
+    }
+    
+    // Fallback to id
+    return user.id.substring(0, 8);
+  };
+  
+  // Get first letter for avatar
+  const getAvatarInitial = () => {
+    const displayName = getDisplayName();
+    return displayName ? displayName.charAt(0).toUpperCase() : '?';
+  };
+  
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
@@ -85,11 +104,13 @@ export const AppLayout = ({ children }: { children: React.ReactNode }) => {
             <div className="flex flex-col gap-4">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                  {user?.username.charAt(0).toUpperCase()}
+                  {getAvatarInitial()}
                 </div>
                 <div>
-                  <p className="font-medium">{user?.username}</p>
-                  <p className="text-xs text-muted-foreground capitalize">{user?.role}</p>
+                  <p className="font-medium">{getDisplayName()}</p>
+                  <p className="text-xs text-muted-foreground capitalize">
+                    {isAdmin() ? 'Admin' : 'User'}
+                  </p>
                 </div>
               </div>
               
