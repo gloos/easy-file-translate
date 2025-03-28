@@ -44,7 +44,7 @@ export const AppLayout = ({ children }: { children: React.ReactNode }) => {
   
   return (
     <div className="min-h-screen flex w-full">
-      <Sidebar defaultCollapsed={false} className="border-r">
+      <Sidebar className="border-r">
         <SidebarHeader className="px-4 py-6">
           <div className="flex items-center gap-2">
             <FileText className="text-primary" size={24} />
