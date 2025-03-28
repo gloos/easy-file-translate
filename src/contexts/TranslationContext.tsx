@@ -150,9 +150,9 @@ export const TranslationProvider: React.FC<{ children: React.ReactNode }> = ({ c
         throw error;
       }
       
-      // Simulate job processing with timeouts
+      // Start the real translation process
       if (data) {
-        simulateJobProcessing(data.id);
+        processTranslationJob(data.id);
         return data.id;
       }
       
@@ -193,35 +193,58 @@ export const TranslationProvider: React.FC<{ children: React.ReactNode }> = ({ c
     }
   };
 
-  // Simulate job processing
-  const simulateJobProcessing = (jobId: string) => {
-    // Processing stage
-    setTimeout(() => {
-      updateJobStatus(jobId, 'processing');
+  // Process a translation job using DeepL
+  const processTranslationJob = async (jobId: string) => {
+    try {
+      // Set job to processing
+      await updateJobStatus(jobId, 'processing');
       
-      // Translating stage
-      setTimeout(() => {
-        updateJobStatus(jobId, 'translating');
+      // Simulate document processing for 2 seconds
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // Set job to translating
+      await updateJobStatus(jobId, 'translating');
+      
+      // Get job details
+      const { data: jobData, error: jobError } = await supabase
+        .from('translation_jobs')
+        .select('*')
+        .eq('id', jobId)
+        .single();
         
-        // Set a random completion time between 5-15 seconds
-        const completionTime = 5000 + Math.random() * 10000;
-        
-        // Final stage - randomly complete or error
-        setTimeout(() => {
-          const success = Math.random() > 0.2; // 80% chance of success
-          
-          if (success) {
-            updateJobStatus(jobId, 'completed');
-          } else {
-            updateJobStatus(
-              jobId, 
-              'error', 
-              'Translation service error. Please try again.'
-            );
+      if (jobError || !jobData) {
+        console.error('Error fetching job details:', jobError);
+        await updateJobStatus(jobId, 'error', 'Failed to fetch job details');
+        return;
+      }
+      
+      try {
+        // Call the DeepL translation function
+        const { data, error } = await supabase.functions.invoke('translate-document', {
+          body: {
+            jobId,
+            text: `Sample content for file: ${jobData.file_name}`,
+            sourceLanguage: jobData.source_language,
+            targetLanguage: jobData.target_language
           }
-        }, completionTime);
-      }, 3000); // 3 seconds for processing
-    }, 2000); // 2 seconds for queued
+        });
+        
+        if (error || !data.success) {
+          console.error('Translation error:', error || data.error);
+          await updateJobStatus(jobId, 'error', 'Translation service error');
+          return;
+        }
+        
+        // Mark job as completed
+        await updateJobStatus(jobId, 'completed');
+      } catch (error) {
+        console.error('Error calling translation function:', error);
+        await updateJobStatus(jobId, 'error', 'Translation service error. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error in processTranslationJob:', error);
+      await updateJobStatus(jobId, 'error', 'An unexpected error occurred');
+    }
   };
 
   // Get available languages
